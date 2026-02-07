@@ -20,7 +20,13 @@ import { ChatSDKError } from "../errors";
 import { generateUUID } from "../utils";
 import {
   type Chat,
+  type CouncilResponse,
+  type CouncilSession,
+  type CouncilSynthesis,
   chat,
+  councilResponse,
+  councilSession,
+  councilSynthesis,
   type DBMessage,
   document,
   message,
@@ -239,6 +245,198 @@ export async function getChatById({ id }: { id: string }) {
     return selectedChat;
   } catch (_error) {
     throw new ChatSDKError("bad_request:database", "Failed to get chat by id");
+  }
+}
+
+export async function createCouncilSession({
+  chatId,
+  mode,
+  selectedModels,
+}: {
+  chatId: string;
+  mode: string;
+  selectedModels: string[];
+}) {
+  try {
+    const [session] = await db
+      .insert(councilSession)
+      .values({
+        chatId,
+        mode,
+        selectedModels,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return session;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to create council session"
+    );
+  }
+}
+
+export async function getCouncilSessionsByChatId({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<CouncilSession[]> {
+  try {
+    return await db
+      .select()
+      .from(councilSession)
+      .where(eq(councilSession.chatId, chatId))
+      .orderBy(asc(councilSession.createdAt));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get council sessions by chat id"
+    );
+  }
+}
+
+export async function getCouncilSessionById({
+  id,
+}: {
+  id: string;
+}): Promise<CouncilSession | null> {
+  try {
+    const [selectedSession] = await db
+      .select()
+      .from(councilSession)
+      .where(eq(councilSession.id, id));
+
+    return selectedSession ?? null;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get council session by id"
+    );
+  }
+}
+
+export async function saveCouncilResponses({
+  responses,
+}: {
+  responses: Array<{
+    sessionId: string;
+    messageId: string;
+    modelId: string;
+    responseText: string;
+    ttft?: number | null;
+    duration?: number | null;
+    tokenCount?: number | null;
+  }>;
+}): Promise<CouncilResponse[]> {
+  try {
+    return await db
+      .insert(councilResponse)
+      .values(
+        responses.map((response) => ({
+          ...response,
+          createdAt: new Date(),
+        }))
+      )
+      .returning();
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save council responses"
+    );
+  }
+}
+
+export async function updateCouncilResponseVote({
+  responseId,
+  vote,
+}: {
+  responseId: string;
+  vote: "up" | "down" | null;
+}) {
+  try {
+    return await db
+      .update(councilResponse)
+      .set({ userVote: vote })
+      .where(eq(councilResponse.id, responseId));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to update council response vote"
+    );
+  }
+}
+
+export async function getCouncilResponsesBySessionId({
+  sessionId,
+}: {
+  sessionId: string;
+}): Promise<CouncilResponse[]> {
+  try {
+    return await db
+      .select()
+      .from(councilResponse)
+      .where(eq(councilResponse.sessionId, sessionId))
+      .orderBy(asc(councilResponse.createdAt));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get council responses by session id"
+    );
+  }
+}
+
+export async function saveCouncilSynthesis({
+  sessionId,
+  messageId,
+  synthesisText,
+  synthesiserModel,
+  contributingModels,
+}: {
+  sessionId: string;
+  messageId: string;
+  synthesisText: string;
+  synthesiserModel: string;
+  contributingModels: string[];
+}): Promise<CouncilSynthesis> {
+  try {
+    const [savedSynthesis] = await db
+      .insert(councilSynthesis)
+      .values({
+        sessionId,
+        messageId,
+        synthesisText,
+        synthesiserModel,
+        contributingModels,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return savedSynthesis;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save council synthesis"
+    );
+  }
+}
+
+export async function getCouncilSynthesesBySessionId({
+  sessionId,
+}: {
+  sessionId: string;
+}): Promise<CouncilSynthesis[]> {
+  try {
+    return await db
+      .select()
+      .from(councilSynthesis)
+      .where(eq(councilSynthesis.sessionId, sessionId))
+      .orderBy(asc(councilSynthesis.createdAt));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get council syntheses by session id"
+    );
   }
 }
 

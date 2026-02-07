@@ -70,12 +70,12 @@ export function Chat({
 
   const [input, setInput] = useState<string>("");
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
-  const [currentModelId, setCurrentModelId] = useState(initialChatModel);
-  const currentModelIdRef = useRef(currentModelId);
+  const [selectedModels, setSelectedModels] = useState([initialChatModel]);
+  const selectedModelsRef = useRef(selectedModels);
 
   useEffect(() => {
-    currentModelIdRef.current = currentModelId;
-  }, [currentModelId]);
+    selectedModelsRef.current = selectedModels;
+  }, [selectedModels]);
 
   const {
     messages,
@@ -124,7 +124,8 @@ export function Chat({
             ...(isToolApprovalContinuation
               ? { messages: request.messages }
               : { message: lastMessage }),
-            selectedChatModel: currentModelIdRef.current,
+            selectedChatModel: selectedModelsRef.current[0],
+            selectedModels: selectedModelsRef.current,
             selectedVisibilityType: visibilityType,
             ...request.body,
           },
@@ -201,7 +202,7 @@ export function Chat({
           isReadonly={isReadonly}
           messages={messages}
           regenerate={regenerate}
-          selectedModelId={initialChatModel}
+          selectedModelId={selectedModels[0] ?? initialChatModel}
           setMessages={setMessages}
           status={status}
           votes={votes}
@@ -214,8 +215,8 @@ export function Chat({
               chatId={id}
               input={input}
               messages={messages}
-              onModelChange={setCurrentModelId}
-              selectedModelId={currentModelId}
+              onSelectedModelsChange={setSelectedModels}
+              selectedModels={selectedModels}
               selectedVisibilityType={visibilityType}
               sendMessage={sendMessage}
               setAttachments={setAttachments}
@@ -236,7 +237,7 @@ export function Chat({
         isReadonly={isReadonly}
         messages={messages}
         regenerate={regenerate}
-        selectedModelId={currentModelId}
+        selectedModelId={selectedModels[0] ?? initialChatModel}
         selectedVisibilityType={visibilityType}
         sendMessage={sendMessage}
         setAttachments={setAttachments}

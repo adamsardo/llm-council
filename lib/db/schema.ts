@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  integer,
   json,
   pgTable,
   primaryKey,
@@ -168,3 +169,50 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const councilSession = pgTable("CouncilSession", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  chatId: uuid("chatId")
+    .notNull()
+    .references(() => chat.id, { onDelete: "cascade" }),
+  mode: varchar("mode").notNull(),
+  selectedModels: json("selectedModels").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type CouncilSession = InferSelectModel<typeof councilSession>;
+
+export const councilResponse = pgTable("CouncilResponse", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  sessionId: uuid("sessionId")
+    .notNull()
+    .references(() => councilSession.id, { onDelete: "cascade" }),
+  messageId: uuid("messageId")
+    .notNull()
+    .references(() => message.id, { onDelete: "cascade" }),
+  modelId: varchar("modelId").notNull(),
+  responseText: text("responseText").notNull(),
+  ttft: integer("ttft"),
+  duration: integer("duration"),
+  tokenCount: integer("tokenCount"),
+  userVote: varchar("userVote", { enum: ["up", "down"] }),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type CouncilResponse = InferSelectModel<typeof councilResponse>;
+
+export const councilSynthesis = pgTable("CouncilSynthesis", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  sessionId: uuid("sessionId")
+    .notNull()
+    .references(() => councilSession.id, { onDelete: "cascade" }),
+  messageId: uuid("messageId")
+    .notNull()
+    .references(() => message.id, { onDelete: "cascade" }),
+  synthesisText: text("synthesisText").notNull(),
+  synthesiserModel: varchar("synthesiserModel").notNull(),
+  contributingModels: json("contributingModels").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+
+export type CouncilSynthesis = InferSelectModel<typeof councilSynthesis>;

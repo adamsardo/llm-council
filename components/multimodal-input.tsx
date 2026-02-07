@@ -66,8 +66,8 @@ function PureMultimodalInput({
   sendMessage,
   className,
   selectedVisibilityType,
-  selectedModelId,
-  onModelChange,
+  selectedModels,
+  onSelectedModelsChange,
 }: {
   chatId: string;
   input: string;
@@ -81,8 +81,8 @@ function PureMultimodalInput({
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   className?: string;
   selectedVisibilityType: VisibilityType;
-  selectedModelId: string;
-  onModelChange?: (modelId: string) => void;
+  selectedModels: string[];
+  onSelectedModelsChange?: (modelIds: string[]) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -381,12 +381,12 @@ function PureMultimodalInput({
           <PromptInputTools className="gap-0 sm:gap-0.5">
             <AttachmentsButton
               fileInputRef={fileInputRef}
-              selectedModelId={selectedModelId}
+              selectedModelId={selectedModels[0] ?? DEFAULT_CHAT_MODEL}
               status={status}
             />
             <ModelSelectorCompact
-              onModelChange={onModelChange}
-              selectedModelId={selectedModelId}
+              onModelChange={(modelId) => onSelectedModelsChange?.([modelId])}
+              selectedModelId={selectedModels[0] ?? DEFAULT_CHAT_MODEL}
             />
           </PromptInputTools>
 
@@ -423,7 +423,7 @@ export const MultimodalInput = memo(
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
       return false;
     }
-    if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+    if (!equal(prevProps.selectedModels, nextProps.selectedModels)) {
       return false;
     }
 

@@ -28,8 +28,10 @@ import {
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import {
+  type ChatModel,
   chatModels,
   DEFAULT_CHAT_MODEL,
+  groupModelsByProvider,
   modelsByProvider,
 } from "@/lib/ai/models";
 import type { Attachment, ChatMessage } from "@/lib/types";
@@ -461,6 +463,14 @@ function PureAttachmentsButton({
 
 const AttachmentsButton = memo(PureAttachmentsButton);
 
+function toProviderLabel(provider: string) {
+  return provider
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function PureModelSelectorCompact({
   selectedModelId,
   onModelChange,
@@ -469,21 +479,51 @@ function PureModelSelectorCompact({
   onModelChange?: (modelId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [availableModels, setAvailableModels] =
+    useState<ChatModel[]>(chatModels);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadModels = async () => {
+      try {
+        const response = await fetch("/api/models", { method: "GET" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { models?: ChatModel[] };
+
+        if (isMounted && Array.isArray(data.models) && data.models.length > 0) {
+          setAvailableModels(data.models);
+        }
+      } catch {
+        // Use local fallback models when API fails.
+      }
+    };
+
+    loadModels();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const groupedModels =
+    availableModels.length > 0
+      ? groupModelsByProvider(availableModels)
+      : modelsByProvider;
 
   const selectedModel =
-    chatModels.find((m) => m.id === selectedModelId) ??
-    chatModels.find((m) => m.id === DEFAULT_CHAT_MODEL) ??
+    availableModels.find((model) => model.id === selectedModelId) ??
+    availableModels.find((model) => model.id === DEFAULT_CHAT_MODEL) ??
+    chatModels.find((model) => model.id === selectedModelId) ??
+    chatModels.find((model) => model.id === DEFAULT_CHAT_MODEL) ??
+    availableModels[0] ??
     chatModels[0];
-  const [provider] = selectedModel.id.split("/");
 
-  // Provider display names
-  const providerNames: Record<string, string> = {
-    anthropic: "Anthropic",
-    openai: "OpenAI",
-    google: "Google",
-    xai: "xAI",
-    reasoning: "Reasoning",
-  };
+  const [provider] = selectedModel.id.split("/");
 
   return (
     <ModelSelector onOpenChange={setOpen} open={open}>
@@ -496,14 +536,15 @@ function PureModelSelectorCompact({
       <ModelSelectorContent>
         <ModelSelectorInput placeholder="Search models..." />
         <ModelSelectorList>
-          {Object.entries(modelsByProvider).map(
+          {Object.entries(groupedModels).map(
             ([providerKey, providerModels]) => (
               <ModelSelectorGroup
-                heading={providerNames[providerKey] ?? providerKey}
+                heading={toProviderLabel(providerKey)}
                 key={providerKey}
               >
                 {providerModels.map((model) => {
-                  const logoProvider = model.id.split("/")[0];
+                  const logoProvider = model.provider || model.id.split("/")[0];
+
                   return (
                     <ModelSelectorItem
                       key={model.id}

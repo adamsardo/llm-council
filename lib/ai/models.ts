@@ -76,14 +76,18 @@ export const chatModels: ChatModel[] = [
   },
 ];
 
+export function groupModelsByProvider(models: ChatModel[]) {
+  return models.reduce(
+    (acc, model) => {
+      if (!acc[model.provider]) {
+        acc[model.provider] = [];
+      }
+      acc[model.provider].push(model);
+      return acc;
+    },
+    {} as Record<string, ChatModel[]>
+  );
+}
+
 // Group models by provider for UI
-export const modelsByProvider = chatModels.reduce(
-  (acc, model) => {
-    if (!acc[model.provider]) {
-      acc[model.provider] = [];
-    }
-    acc[model.provider].push(model);
-    return acc;
-  },
-  {} as Record<string, ChatModel[]>
-);
+export const modelsByProvider = groupModelsByProvider(chatModels);
